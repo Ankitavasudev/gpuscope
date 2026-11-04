@@ -25,7 +25,7 @@ jobs:
           go-version-file: go.mod
 
       - name: Build the report
-        run: ./scripts/build-demo.sh
+        run: bash ./scripts/build-demo.sh
 
       - uses: actions/upload-pages-artifact@v3
         with:
