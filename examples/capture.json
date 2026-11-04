@@ -1,0 +1,256 @@
+{
+  "nodes": [
+    {
+      "metadata": {
+        "name": "gpu-node-1",
+        "labels": {
+          "nvidia.com/gpu.present": "true",
+          "nvidia.com/gpu.product": "NVIDIA-A100-SXM4-40GB",
+          "nvidia.com/gpu.count": "4"
+        }
+      },
+      "status": {
+        "capacity": {
+          "cpu": "64",
+          "memory": "512Gi",
+          "nvidia.com/gpu": "4"
+        },
+        "allocatable": {
+          "cpu": "60",
+          "memory": "480Gi",
+          "nvidia.com/gpu": "4"
+        }
+      }
+    },
+    {
+      "metadata": {
+        "name": "gpu-node-2",
+        "labels": {
+          "nvidia.com/gpu.present": "true",
+          "nvidia.com/gpu.product": "NVIDIA-A100-SXM4-40GB",
+          "nvidia.com/gpu.count": "4"
+        }
+      },
+      "status": {
+        "capacity": {
+          "cpu": "64",
+          "memory": "512Gi",
+          "nvidia.com/gpu": "4"
+        },
+        "allocatable": {
+          "cpu": "60",
+          "memory": "480Gi",
+          "nvidia.com/gpu": "4"
+        }
+      }
+    },
+    {
+      "metadata": {
+        "name": "gpu-node-3",
+        "labels": {
+          "nvidia.com/gpu.present": "true",
+          "nvidia.com/gpu.product": "Tesla-V100-SXM2-32GB",
+          "nvidia.com/gpu.count": "2"
+        }
+      },
+      "status": {
+        "capacity": {
+          "cpu": "32",
+          "memory": "256Gi",
+          "nvidia.com/gpu": "2"
+        },
+        "allocatable": {
+          "cpu": "30",
+          "memory": "240Gi",
+          "nvidia.com/gpu": "2"
+        }
+      }
+    },
+    {
+      "metadata": {
+        "name": "cpu-node-1",
+        "labels": {
+          "kubernetes.io/arch": "amd64"
+        }
+      },
+      "status": {
+        "capacity": {
+          "cpu": "16",
+          "memory": "64Gi"
+        },
+        "allocatable": {
+          "cpu": "15",
+          "memory": "60Gi"
+        }
+      }
+    }
+  ],
+  "pods": [
+    {
+      "metadata": {
+        "name": "train-bert-v1",
+        "namespace": "ml-training"
+      },
+      "spec": {
+        "nodeName": "gpu-node-1",
+        "containers": [
+          {
+            "name": "trainer",
+            "resources": {
+              "requests": {
+                "cpu": "8",
+                "memory": "32Gi",
+                "nvidia.com/gpu": "2"
+              }
+            }
+          }
+        ]
+      },
+      "status": {
+        "phase": "Running"
+      }
+    },
+    {
+      "metadata": {
+        "name": "train-resnet-v2",
+        "namespace": "ml-training"
+      },
+      "spec": {
+        "nodeName": "gpu-node-1",
+        "containers": [
+          {
+            "name": "trainer",
+            "resources": {
+              "requests": {
+                "cpu": "4",
+                "memory": "16Gi",
+                "nvidia.com/gpu": "1"
+              }
+            }
+          }
+        ]
+      },
+      "status": {
+        "phase": "Running"
+      }
+    },
+    {
+      "metadata": {
+        "name": "inference-batch",
+        "namespace": "ml-training"
+      },
+      "spec": {
+        "nodeName": "gpu-node-2",
+        "containers": [
+          {
+            "name": "server",
+            "resources": {
+              "requests": {
+                "cpu": "2",
+                "memory": "8Gi",
+                "nvidia.com/gpu": "1"
+              }
+            }
+          }
+        ]
+      },
+      "status": {
+        "phase": "Running"
+      }
+    },
+    {
+      "metadata": {
+        "name": "notebook",
+        "namespace": "ml-training"
+      },
+      "spec": {
+        "nodeName": "gpu-node-2",
+        "containers": [
+          {
+            "name": "jupyter",
+            "resources": {
+              "requests": {
+                "cpu": "2",
+                "memory": "8Gi",
+                "nvidia.com/gpu": "1"
+              }
+            }
+          }
+        ]
+      },
+      "status": {
+        "phase": "Running"
+      }
+    },
+    {
+      "metadata": {
+        "name": "eval-job",
+        "namespace": "ml-training"
+      },
+      "spec": {
+        "nodeName": "gpu-node-3",
+        "containers": [
+          {
+            "name": "eval",
+            "resources": {
+              "requests": {
+                "cpu": "4",
+                "memory": "16Gi",
+                "nvidia.com/gpu": "1"
+              }
+            }
+          }
+        ]
+      },
+      "status": {
+        "phase": "Succeeded"
+      }
+    },
+    {
+      "metadata": {
+        "name": "train-gpt-v3",
+        "namespace": "ml-training"
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "trainer",
+            "resources": {
+              "requests": {
+                "cpu": "16",
+                "memory": "64Gi",
+                "nvidia.com/gpu": "2"
+              }
+            }
+          }
+        ]
+      },
+      "status": {
+        "phase": "Pending"
+      }
+    },
+    {
+      "metadata": {
+        "name": "web-frontend",
+        "namespace": "default"
+      },
+      "spec": {
+        "nodeName": "cpu-node-1",
+        "containers": [
+          {
+            "name": "nginx",
+            "resources": {
+              "requests": {
+                "cpu": "250m",
+                "memory": "128Mi"
+              }
+            }
+          }
+        ]
+      },
+      "status": {
+        "phase": "Running"
+      }
+    }
+  ]
+}

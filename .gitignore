@@ -1,0 +1,4 @@
+k8s-gpu-monitor
+k8s-gpu-monitor.exe
+*.test
+*.out
