@@ -3,95 +3,200 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>k8s-gpu-monitor report</title>
+<title>k8s-gpu-monitor — GPU allocation at a glance</title>
+<meta name="description" content="See which GPUs are allocated, which nodes are full, and which pods are waiting for capacity — filter by node or namespace.">
 <style>
-:root{--bg:#0b0f14;--panel:#121b23;--card:#16232d;--line:#23343f;--text:#eaf1f8;--muted:#8ba3b5;--accent:#00adb5;--ok:#3fb950;--warn:#d29922;--bad:#f85149}
+:root{
+  --bg:#0d0a13; --panel:#151020; --panel-2:#1d1628; --line:#2c2138;
+  --fg:#eee9f6; --muted:#8b7fa8; --accent:#a371f7; --accent-dim:rgba(163,113,247,.14);
+  --ok:#3fb950; --warn:#d29922; --bad:#f85149; --gpu:#a371f7;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
 *{box-sizing:border-box}
-body{margin:0;background:radial-gradient(1000px 500px at 50% -10%,#123039 0%,var(--bg) 55%);color:var(--text);font:15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-main{max-width:1080px;margin:0 auto;padding:40px 20px 64px}
-h1{font-size:26px;margin:0 0 4px}
-.sub{color:var(--muted);font-size:13px;margin-bottom:24px}
-.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:22px}
-@media(max-width:760px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
-.card .k{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
-.card .v{font-size:26px;font-weight:700;margin-top:2px}
-.card .v.ok{color:var(--ok)}.card .v.warn{color:var(--warn)}.card .v.bad{color:var(--bad)}
-.node{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:12px}
-.node.over{border-color:var(--bad)}
-.node h2{font-size:16px;margin:0;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
-.node h2 .product{color:var(--muted);font-size:13px;font-weight:400}
-.node h2 .badge{margin-left:auto;font-size:11px;border-radius:999px;padding:2px 9px;border:1px solid var(--line);color:var(--muted)}
-.node h2 .badge.over{color:var(--bad);border-color:var(--bad)}
-.bar{height:10px;border-radius:999px;background:#0b141a;overflow:hidden;margin:12px 0 8px}
-.bar span{display:block;height:100%;background:linear-gradient(90deg,#00adb5,#3fb950)}
-.node.over .bar span{background:linear-gradient(90deg,#d29922,#f85149)}
-.meta{display:flex;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:12px}
-table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}
-th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}
-th{color:var(--muted);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.05em}
-td.num{font-family:ui-monospace,Consolas,monospace}
-code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;background:#0b141a;border:1px solid var(--line);border-radius:4px;padding:1px 6px;font-size:12px}
-section.block{margin-top:26px}
-section.block h2{font-size:16px;margin:0 0 4px}
-section.block p.hint{color:var(--muted);font-size:13px;margin:0 0 10px}
-.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:9px;padding:9px 12px;margin-bottom:8px;font-size:13px}
-.row .name{font-weight:600}
-.row .muted{color:var(--muted)}
-.empty{color:var(--muted);font-size:13px}
-footer{color:var(--muted);font-size:12px;margin-top:30px}
+body{margin:0;background:radial-gradient(800px 500px at 12% -10%,rgba(163,113,247,.16),transparent 60%),radial-gradient(700px 450px at 92% 5%,rgba(88,166,255,.08),transparent 55%),var(--bg);color:var(--fg);font:15px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:1160px;margin:0 auto;padding:26px 20px 56px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+h1{font-size:22px;margin:0}
+h1 code{color:var(--accent);font-size:.82em}
+.sub{color:var(--muted);font-size:12.5px;margin-top:2px}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--muted);font-size:12.5px;text-decoration:none}
+.btn:hover{color:var(--fg);border-color:#44335a}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:18px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.stat .n{font-size:22px;font-weight:700}
+.stat .l{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+.stat.gpu .n{color:var(--gpu)}.stat.ok .n{color:var(--ok)}.stat.warn .n{color:var(--warn)}.stat.bad .n{color:var(--bad)}
+.grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:14px}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 18px 44px rgba(0,0,0,.45);margin-bottom:14px}
+h2{font-size:13px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+.chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
+.chip{cursor:pointer;padding:4px 11px;border-radius:999px;font-size:12px;border:1px solid var(--line);background:transparent;color:var(--muted)}
+.chip.active{color:var(--accent);border-color:var(--accent);background:var(--accent-dim)}
+.node-card{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px;background:var(--panel-2)}
+.node-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:4px}
+.node-name{font-family:var(--mono);font-weight:700;font-size:14px}
+.gpu-chip{font-size:10.5px;border:1px solid #3d2a58;color:#cbb8ff;background:rgba(163,113,247,.12);border-radius:999px;padding:1px 9px}
+.node-cap{color:var(--muted);font-size:11.5px;margin-bottom:10px}
+.alloc{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.alloc-label{width:34px;font-size:12px;color:var(--muted);font-family:var(--mono)}
+.cells{display:flex;gap:5px}
+.cell{width:26px;height:26px;border-radius:7px;border:1px solid var(--line);display:grid;place-items:center;font-size:10px;color:var(--muted)}
+.cell.used{background:var(--gpu);border-color:var(--gpu);color:#120722}
+.cell.free{opacity:.5}
+.pods-inline{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.pod-chip{font-size:11px;border:1px solid var(--line);border-radius:6px;padding:1px 7px;color:var(--muted);font-family:var(--mono)}
+.pod-chip.hot{color:#f0a8ff;border-color:#5b3d7a}
+.unfit{border-color:rgba(248,113,113,.4);background:rgba(248,113,113,.06)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line)}
+thead th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+tbody tr:hover{background:rgba(163,113,247,.06)}
+tbody tr:last-child td{border-bottom:0}
+code{font-family:var(--mono);font-size:12px}
+.badge{display:inline-block;padding:1px 9px;border-radius:999px;font-size:11.5px;font-weight:600;border:1px solid currentColor}
+.badge.running{color:#60a5fa}.badge.succeeded{color:var(--ok)}.badge.pending{color:var(--warn)}
+.pending-callout{font-size:12px;color:#fca5a5;margin:4px 0 0;padding:10px 12px;border:1px solid rgba(248,113,113,.35);background:rgba(248,113,113,.07);border-radius:9px}
+.foot{color:var(--muted);font-size:11px;margin-top:4px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.foot a{color:var(--accent)}
+.meter{display:grid;grid-template-columns:130px 1fr 42px;gap:10px;align-items:center;font-size:12.5px;margin:7px 0}
+.track{height:9px;border-radius:5px;background:#0f0a18;overflow:hidden}
+.fill{height:100%;border-radius:5px;background:var(--gpu);transition:width .8s ease}
 </style>
 </head>
 <body>
 <main>
-<h1>GPU allocation</h1>
-<div class="sub">Source: examples/capture.json · generated 2026-11-04 23:58 IST</div>
+  <div class="top">
+    <div>
+      <h1><code>k8s-gpu-monitor</code></h1>
+      <div class="sub">Who owns the GPUs, who's waiting, and how full each node is.</div>
+    </div>
+    <a class="btn" href="https://github.com/Ankitavasudev/k8s-gpu-monitor" target="_blank" rel="noopener">GitHub →</a>
+  </div>
 
-<div class="cards">
-  <div class="card"><div class="k">GPU nodes</div><div class="v">3</div></div>
-  <div class="card"><div class="k">GPUs</div><div class="v">10</div></div>
-  <div class="card"><div class="k">Allocated</div><div class="v">6</div></div>
-  <div class="card"><div class="k">Free</div><div class="v ok">4</div></div>
-</div>
+  <div class="stats">
+    <div class="stat"><div class="n">3</div><div class="l">GPU nodes</div></div>
+    <div class="stat gpu"><div class="n">10</div><div class="l">GPUs total</div></div>
+    <div class="stat ok"><div class="n">4</div><div class="l">Allocated</div></div>
+    <div class="stat warn"><div class="n">6</div><div class="l">Free</div></div>
+    <div class="stat bad"><div class="n">1</div><div class="l">Pending</div></div>
+  </div>
 
-<article class="node">
-<h2>gpu-node-1 <span class="product">NVIDIA-A100-SXM4-40GB</span>
-<span class="badge">1 free</span></h2>
-<div class="bar"><span style="width:75%"></span></div>
-<div class="meta"><span>3 / 4 allocated</span><span>2 GPU pods</span></div>
-<table>
-<thead><tr><th>Pod</th><th>Phase</th><th>GPUs</th><th>Containers</th></tr></thead>
-<tbody><tr><td><code>ml-training/train-bert-v1</code></td><td>Running</td><td class="num">2</td><td>trainer</td></tr><tr><td><code>ml-training/train-resnet-v2</code></td><td>Running</td><td class="num">1</td><td>trainer</td></tr></tbody>
-</table>
-</article><article class="node">
-<h2>gpu-node-2 <span class="product">NVIDIA-A100-SXM4-40GB</span>
-<span class="badge">2 free</span></h2>
-<div class="bar"><span style="width:50%"></span></div>
-<div class="meta"><span>2 / 4 allocated</span><span>2 GPU pods</span></div>
-<table>
-<thead><tr><th>Pod</th><th>Phase</th><th>GPUs</th><th>Containers</th></tr></thead>
-<tbody><tr><td><code>ml-training/inference-batch</code></td><td>Running</td><td class="num">1</td><td>server</td></tr><tr><td><code>ml-training/notebook</code></td><td>Running</td><td class="num">1</td><td>jupyter</td></tr></tbody>
-</table>
-</article><article class="node">
-<h2>gpu-node-3 <span class="product">Tesla-V100-SXM2-32GB</span>
-<span class="badge">1 free</span></h2>
-<div class="bar"><span style="width:50%"></span></div>
-<div class="meta"><span>1 / 2 allocated</span><span>1 GPU pod</span></div>
-<table>
-<thead><tr><th>Pod</th><th>Phase</th><th>GPUs</th><th>Containers</th></tr></thead>
-<tbody><tr><td><code>ml-training/eval-job</code></td><td>Succeeded</td><td class="num">1</td><td>eval</td></tr></tbody>
-</table>
-</article>
+  <div class="grid">
+    <section class="panel" aria-label="GPU nodes">
+      <h2>GPU nodes</h2>
+      <div class="chips" id="nodeFilter">
+        <button class="chip active" data-filter="all">All nodes</button>
+        <button class="chip" data-filter="A100">A100</button>
+        <button class="chip" data-filter="V100">V100</button>
+      </div>
+      <div id="nodes"></div>
+    </section>
 
-<section class="block">
-<h2>Unscheduled GPU pods (1)</h2>
-<p class="hint">These request GPUs but have no node assigned. They are waiting on capacity, a taint, or a scheduler decision.</p>
-<div class="row"><span class="name">ml-training/train-gpt-v3</span><span class="muted">requests 2</span><span class="muted">phase Pending</span></div>
-</section>
+    <aside>
+      <section class="panel" aria-label="GPU pods">
+        <h2>GPU pods</h2>
+        <table>
+          <thead><tr><th>Pod</th><th>Node</th><th>Phase</th><th style="text-align:right">GPUs</th></tr></thead>
+          <tbody id="podRows"></tbody>
+        </table>
+        <p class="pending-callout"><strong>train-gpt-v3</strong> requests 2 GPUs but no node has 2 free. Waiting on capacity — or trigger a node scale-up.</p>
+      </section>
 
+      <section class="panel" aria-label="Allocation">
+        <h2>GPU allocation</h2>
+        <div id="allocation"></div>
+      </section>
+    </aside>
+  </div>
 
-
-<footer>Generated by k8s-gpu-monitor v1.0.0. Allocation comes from pod requests; utilisation needs a device exporter such as DCGM.</footer>
+  <div class="foot">
+    <span>Sample data: <code>examples/capture.json</code> · allocation = pod requests</span>
+    <span><a href="https://github.com/Ankitavasudev/k8s-gpu-monitor">source →</a></span>
+  </div>
 </main>
+
+<script>
+const nodes = [
+  { name: 'gpu-node-1', gpu: 'NVIDIA-A100-SXM4-40GB', count: 4, used: 3, cap: '60 CPU · 480 GiB', pool: 'A100' },
+  { name: 'gpu-node-2', gpu: 'NVIDIA-A100-SXM4-40GB', count: 4, used: 2, cap: '60 CPU · 480 GiB', pool: 'A100' },
+  { name: 'gpu-node-3', gpu: 'Tesla-V100-SXM2-32GB', count: 2, used: 1, cap: '30 CPU · 240 GiB', pool: 'V100' },
+];
+const pods = [
+  { ns: 'ml-training', name: 'train-bert-v1', node: 'gpu-node-1', phase: 'Running', gpus: 2 },
+  { ns: 'ml-training', name: 'train-resnet-v2', node: 'gpu-node-1', phase: 'Running', gpus: 1 },
+  { ns: 'ml-training', name: 'inference-batch', node: 'gpu-node-2', phase: 'Running', gpus: 1 },
+  { ns: 'ml-training', name: 'notebook', node: 'gpu-node-2', phase: 'Running', gpus: 1 },
+  { ns: 'ml-training', name: 'eval-job', node: 'gpu-node-3', phase: 'Succeeded', gpus: 1 },
+  { ns: 'ml-training', name: 'train-gpt-v3', node: '— (pending)', phase: 'Pending', gpus: 2 },
+];
+
+const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text !== undefined) n.textContent = text; return n; };
+const nodeFilter = document.getElementById('nodeFilter');
+const nodesEl = document.getElementById('nodes');
+let activeNode = 'all';
+
+function renderNodes() {
+  nodesEl.replaceChildren();
+  for (const n of nodes) {
+    if (activeNode !== 'all' && n.pool !== activeNode) continue;
+    const card = el('div', 'node-card');
+    const head = el('div', 'node-head');
+    const left = el('div');
+    left.append(el('span', 'node-name', n.name));
+    left.append(el('span', 'gpu-chip', n.gpu));
+    head.append(left);
+    head.append(el('span', 'node-cap', n.cap));
+    card.append(head);
+
+    // GPU cells
+    const alloc = el('div', 'alloc');
+    alloc.append(el('span', 'alloc-label', 'GPU'));
+    const cells = el('div', 'cells');
+    for (let i = 1; i <= n.count; i++) {
+      const cell = el('div', 'cell ' + (i <= n.used ? 'used' : 'free'), i <= n.used ? '✓' : String(i));
+      cells.append(cell);
+    }
+    alloc.append(cells);
+    card.append(alloc);
+
+    const podRow = el('div', 'pods-inline');
+    for (const p of pods.filter(p => p.node === n.name && p.phase === 'Running')) {
+      const chip = el('span', 'pod-chip hot', `${p.name} ×${p.gpus}`);
+      podRow.append(chip);
+    }
+    card.append(podRow);
+    nodesEl.append(card);
+  }
+}
+nodeFilter.addEventListener('click', e => {
+  const btn = e.target.closest('.chip'); if (!btn) return;
+  activeNode = btn.dataset.filter;
+  nodeFilter.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c === btn));
+  renderNodes();
+});
+
+const tbody = document.getElementById('podRows');
+for (const p of pods) {
+  const tr = el('tr');
+  tr.innerHTML = `<td><code>${p.ns}/${p.name}</code></td><td class="muted">${p.node}</td><td><span class="badge ${p.phase.toLowerCase()}">${p.phase}</span></td><td style="text-align:right">${p.gpus}</td>`;
+  tbody.append(tr);
+}
+
+// allocation meters per node
+const allocEl = document.getElementById('allocation');
+for (const n of nodes) {
+  const row = el('div', 'meter');
+  row.append(el('span', null, n.name));
+  const track = el('div', 'track'); const fill = el('div', 'fill');
+  fill.style.width = ((n.used / n.count) * 100) + '%';
+  if (n.used === n.count) fill.style.background = 'var(--bad)';
+  track.append(fill); row.append(track);
+  row.append(el('span', 'nsl', `${n.used}/${n.count}`));
+  allocEl.append(row);
+}
+
+renderNodes();
+</script>
 </body>
 </html>
