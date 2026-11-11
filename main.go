@@ -15,7 +15,7 @@ import (
 
 // version is used when the binary is built from a checkout. go install fills in
 // the module version instead, so `version` reports what was actually run.
-var version = "v1.0.0"
+var version = "v1.0.1"
 
 func versionString() string {
 	if info, ok := debug.ReadBuildInfo(); ok {
