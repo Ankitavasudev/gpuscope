@@ -1,4 +1,4 @@
-# k8s-gpu-monitor
+# gpuscope
 
 Report how many GPUs each Kubernetes node advertises, how many pods have asked
 for, and where the requests actually landed. It reads a saved capture, a pair of
@@ -6,7 +6,7 @@ for, and where the requests actually landed. It reads a saved capture, a pair of
 required.
 
 ```console
-$ k8s-gpu-monitor --from examples/capture.json
+$ gpuscope --from examples/capture.json
 GPU allocation — examples/capture.json
 Generated 2026-11-04 23:54 IST
 
@@ -44,36 +44,36 @@ The report flags three states:
 ## Install
 
 ```bash
-go install github.com/Ankitavasudev/k8s-gpu-monitor@latest
+go install github.com/Ankitavasudev/gpuscope@latest
 ```
 
 Requires Go 1.21 or newer. Or grab a prebuilt binary — every tag ships Linux,
-macOS and Windows builds (amd64 + arm64) on the [releases page](https://github.com/Ankitavasudev/k8s-gpu-monitor/releases),
+macOS and Windows builds (amd64 + arm64) on the [releases page](https://github.com/Ankitavasudev/gpuscope/releases),
 built with [GoReleaser](https://goreleaser.com).
 
 ## Usage
 
 ```bash
 # A saved capture with nodes and pods arrays
-k8s-gpu-monitor --from examples/capture.json
+gpuscope --from examples/capture.json
 
 # Two raw kubectl outputs
 kubectl get nodes -o json > nodes.json
 kubectl get pods -A -o json > pods.json
-k8s-gpu-monitor --nodes nodes.json --pods pods.json
+gpuscope --nodes nodes.json --pods pods.json
 
 # The current kubectl context
-k8s-gpu-monitor
+gpuscope
 
 # Only one namespace
-k8s-gpu-monitor --namespace ml-training
+gpuscope --namespace ml-training
 
 # Machine-readable output
-k8s-gpu-monitor --from examples/capture.json -o json
-k8s-gpu-monitor --from examples/capture.json -o csv
+gpuscope --from examples/capture.json -o json
+gpuscope --from examples/capture.json -o csv
 
 # Self-contained HTML report
-k8s-gpu-monitor --from examples/capture.json -o html > gpu-report.html
+gpuscope --from examples/capture.json -o html > gpu-report.html
 ```
 
 `--from` also accepts a plain `NodeList` or `PodList` when you only want one
@@ -144,7 +144,7 @@ All output is deterministic for the same capture: nodes sort by name, pods by
 ## Demo
 
 A generated report for the example capture is published at
-<https://ankitavasudev.github.io/k8s-gpu-monitor/>.
+<https://ankitavasudev.github.io/gpuscope/>.
 
 ## Limitations
 

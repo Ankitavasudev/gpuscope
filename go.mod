@@ -1,4 +1,4 @@
-module github.com/Ankitavasudev/k8s-gpu-monitor
+module github.com/Ankitavasudev/gpuscope
 
 go 1.21
 

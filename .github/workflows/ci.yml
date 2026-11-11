@@ -31,22 +31,22 @@ jobs:
         run: go test -race ./...
 
       - name: Build
-        run: go build -o k8s-gpu-monitor .
+        run: go build -o gpuscope .
 
       - name: Report the bundled capture
         run: |
-          ./k8s-gpu-monitor --from examples/capture.json
-          ./k8s-gpu-monitor --from examples/capture.json -o json > out.json
+          ./gpuscope --from examples/capture.json
+          ./gpuscope --from examples/capture.json -o json > out.json
           grep -q '"gpus": 10' out.json
           grep -q '"allocated": 6' out.json
           grep -q '"unscheduled": 1' out.json
-          ./k8s-gpu-monitor --from examples/capture.json -o csv > out.csv
+          ./gpuscope --from examples/capture.json -o csv > out.csv
           grep -q 'gpu-node-1,NVIDIA-A100-SXM4-40GB,4,3,1,2,false' out.csv
-          ./k8s-gpu-monitor --from examples/capture.json --namespace ml-training | grep -q 'TOTAL'
+          ./gpuscope --from examples/capture.json --namespace ml-training | grep -q 'TOTAL'
 
       - name: Check the HTML report
         run: |
-          ./k8s-gpu-monitor --from examples/capture.json -o html > report.html
+          ./gpuscope --from examples/capture.json -o html > report.html
           grep -q '<!DOCTYPE html>' report.html
           grep -q 'GPU allocation' report.html
           grep -q 'NVIDIA-A100-SXM4-40GB' report.html
@@ -55,4 +55,4 @@ jobs:
           ! grep -qE '(<link|<img|src="http)' report.html
 
       - name: Version
-        run: ./k8s-gpu-monitor version
+        run: ./gpuscope version

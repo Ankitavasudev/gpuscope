@@ -15,7 +15,7 @@ import (
 
 // version is used when the binary is built from a checkout. go install fills in
 // the module version instead, so `version` reports what was actually run.
-var version = "v1.0.1"
+var version = "v1.1.0"
 
 func versionString() string {
 	if info, ok := debug.ReadBuildInfo(); ok {
@@ -39,7 +39,7 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "k8s-gpu-monitor",
+	Use:   "gpuscope",
 	Short: "Report GPU allocation across Kubernetes nodes",
 	Long: "Report how many GPUs each node advertises and how many pods have\n" +
 		"requested, without needing a GPU, a device exporter, or a live cluster.\n\n" +
